@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Reader UI</title>
+</head>
+<body>
+    <h2>Upload a Text File</h2>
+    <input type="file" id="fileInput">
+    <pre id="output"></pre>
+
+    <script>
+        document.getElementById("fileInput").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function() {
+                const lines = reader.result.split("\n").map(line => line.trim());
+                document.getElementById("output").textContent = lines.join("\n");
+            };
+
+            if (file) {
+                reader.readAsText(file);
+            }
+        });
+    </script>
+</body>
+</html>
