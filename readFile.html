@@ -6,6 +6,20 @@
     <title>File Reader UI</title>
 </head>
 <body>
+    <button id="readClipboard">Read Clipboard</button>
+    <pre id="output"></pre>
+    
+    <script>
+    document.getElementById("readClipboard").addEventListener("click", async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            document.getElementById("output").textContent = text;
+        } catch (err) {
+            console.error("Failed to read clipboard:", err);
+        }
+    });
+    </script>
+
     <h2>Upload a Text File</h2>
     <input type="file" id="fileInput">
     <pre id="output"></pre>
