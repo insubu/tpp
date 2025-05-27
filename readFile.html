@@ -20,6 +20,17 @@
     });
     </script>
 
+    <!-- Output Window in iframe -->
+    <iframe id="outputFrame" style="width: 100%; height: 300px;"></iframe>
+
+    <script>
+        const outputFrame = document.getElementById("outputFrame").contentDocument;
+        
+        function writeToOutput(text) {
+            outputFrame.body.innerHTML = `<textarea style="width:100%; height:100%;">${text}</textarea>`;
+        }
+    </script>
+
     <h2>Upload a Text File</h2>
     <input type="file" id="fileInput">
     <pre id="output"></pre>
