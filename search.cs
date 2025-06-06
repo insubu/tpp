@@ -21,3 +21,20 @@ using (OleDbCommand command = new OleDbCommand(query, connection))
     command.Parameters.AddWithValue("@Age", 30);
     command.ExecuteNonQuery();
 }
+string query = "SELECT * FROM Users";
+using (OleDbCommand command = new OleDbCommand(query, connection))
+using (OleDbDataReader reader = command.ExecuteReader())
+{
+    while (reader.Read())
+    {
+        Console.WriteLine($"ID: {reader["ID"]}, Name: {reader["Name"]}, Age: {reader["Age"]}");
+    }
+}
+
+string query = "UPDATE Users SET Age = ? WHERE Name = ?";
+using (OleDbCommand command = new OleDbCommand(query, connection))
+{
+    command.Parameters.AddWithValue("@Age", 35);
+    command.Parameters.AddWithValue("@Name", "Alice");
+    command.ExecuteNonQuery();
+}
