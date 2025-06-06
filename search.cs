@@ -1,36 +1,16 @@
-using System;
-using System.Windows.Automation;
+var conn = new ActiveXObject("ADODB.Connection");
+var rs = new ActiveXObject("ADODB.Recordset");
 
-class Program
-{
-    static void Main()
-    {
-        // Find the taskbar window
-        AutomationElement taskbar = AutomationElement.RootElement.FindFirst(
-            TreeScope.Children,
-            new PropertyCondition(AutomationElement.ClassNameProperty, "Shell_TrayWnd"));
+var dbPath = "C:\\path\\to\\your\\database.accdb";
+var connStr = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + dbPath;
 
-        if (taskbar != null)
-        {
-            // Find the search box inside the taskbar
-            AutomationElement searchBox = taskbar.FindFirst(
-                TreeScope.Descendants,
-                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit));
+conn.Open(connStr);
+rs.Open("SELECT * FROM YourTable", conn);
 
-            if (searchBox != null)
-            {
-                Console.WriteLine("Search box found!");
-                // Set focus to the search box
-                searchBox.SetFocus();
-            }
-            else
-            {
-                Console.WriteLine("Search box not found.");
-            }
-        }
-        else
-        {
-            Console.WriteLine("Taskbar not found.");
-        }
-    }
+while (!rs.EOF) {
+    console.log(rs.Fields(0).Value); // Print first column value
+    rs.MoveNext();
 }
+
+rs.Close();
+conn.Close();
