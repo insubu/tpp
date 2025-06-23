@@ -27,6 +27,12 @@ class Program
 
     [DllImport("sqlite3.dll", CallingConvention = CallingConvention.Cdecl)]
     public static extern int sqlite3_bind_text(IntPtr stmt, int index, string value, int n, IntPtr free);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+static extern int lstrlenA(IntPtr ptr); // For ANSI (1 byte per char)
+
+[DllImport("kernel32.dll", SetLastError = true)]
+static extern int lstrlenW(IntPtr ptr); // For Unicode (2 bytes per char)
     
     static void Main()
     {
