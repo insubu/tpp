@@ -67,7 +67,11 @@ static extern int lstrlenW(IntPtr ptr); // For Unicode (2 bytes per char)
 }
 
 
-int len = strlen(ptr); // or use sqlite3_column_bytes()
-byte[] buffer = new byte[len];
-Marshal.Copy(ptr, buffer, 0, len);
-string result = Encoding.UTF8.GetString(buffer);
+byte[] utf8Sql = Encoding.UTF8.GetBytes(sql + "\0"); // null-terminated
+GCHandle handle = GCHandle.Alloc(utf8Sql, GCHandleType.Pinned);
+IntPtr ptr = handle.AddrOfPinnedObject();
+
+sqlite3_prepare_v2(db, ptr, -1, out stmt, IntPtr.Zero);
+
+// Don't forget to free the handle after you're done
+handle.Free();
