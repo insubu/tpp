@@ -43,6 +43,8 @@ class Program
             return;
         }
 
+        sqlite3_bind_text(stmt, 1, "%" + keyword + "%", -1, new IntPtr(-1));
+
         while (sqlite3_step(stmt) == SQLITE_ROW)
         {
             IntPtr textPtr = sqlite3_column_text(stmt, 0);
