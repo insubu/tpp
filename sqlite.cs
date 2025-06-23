@@ -59,3 +59,9 @@ class Program
         sqlite3_close(db);
     }
 }
+
+
+int len = strlen(ptr); // or use sqlite3_column_bytes()
+byte[] buffer = new byte[len];
+Marshal.Copy(ptr, buffer, 0, len);
+string result = Encoding.UTF8.GetString(buffer);
