@@ -25,6 +25,9 @@ class Program
     [DllImport("sqlite3.dll", CallingConvention = CallingConvention.Cdecl)]
     public static extern int sqlite3_finalize(IntPtr stmt);
 
+    [DllImport("sqlite3.dll", CallingConvention = CallingConvention.Cdecl)]
+    public static extern int sqlite3_bind_text(IntPtr stmt, int index, string value, int n, IntPtr free);
+    
     static void Main()
     {
         IntPtr db;
