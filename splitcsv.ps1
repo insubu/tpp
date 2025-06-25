@@ -1,3 +1,6 @@
+Start-Process "shell:Downloads"
+Start-Process "shell:Personal"   # "Personal" = My Documents
+
 Start-Process explorer.exe "C:\Path\To\Folder"
 Start-Sleep -Seconds 1
 
