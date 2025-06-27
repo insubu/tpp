@@ -112,3 +112,53 @@ socket.onerror = (err) => {
 socket.onclose = () => {
   console.log("🔌 Connection closed");
 };
+--------------------------------
+    <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket Chat</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    #log { border: 1px solid #ccc; padding: 1em; height: 200px; overflow-y: auto; background: #f9f9f9; }
+    #sendBox { margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <h2>💬 WebSocket Client</h2>
+  <div id="log"></div>
+  <div id="sendBox">
+    <input type="text" id="message" placeholder="Type a message..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    const log = document.getElementById("log");
+    const socket = new WebSocket("ws://localhost:8080");
+
+    socket.onopen = () => logMessage("✅ Connected");
+    socket.onmessage = (e) => logMessage("📩 " + e.data);
+    socket.onerror = (e) => logMessage("❌ Error: " + e.message);
+    socket.onclose = () => logMessage("🔌 Disconnected");
+
+    function sendMessage() {
+      const input = document.getElementById("message");
+      const msg = input.value;
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(msg);
+        logMessage("📤 " + msg);
+        input.value = "";
+      } else {
+        logMessage("⚠️ Connection not open.");
+      }
+    }
+
+    function logMessage(msg) {
+      const p = document.createElement("div");
+      p.textContent = msg;
+      log.appendChild(p);
+      log.scrollTop = log.scrollHeight;
+    }
+  </script>
+</body>
+</html>
