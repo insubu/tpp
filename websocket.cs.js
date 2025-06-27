@@ -3,79 +3,99 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Security.Cryptography;
+using System.Threading;
 
 class WebSocketServer
 {
     static void Main()
     {
-        var listener = new TcpListener(IPAddress.Loopback, 8080);
+        TcpListener listener = new TcpListener(IPAddress.Loopback, 8080);
         listener.Start();
         Console.WriteLine("Listening on ws://localhost:8080");
 
         while (true)
         {
-            using var client = listener.AcceptTcpClient();
-            using var stream = client.GetStream();
+            TcpClient client = listener.AcceptTcpClient();
+            Thread thread = new Thread(HandleClient);
+            thread.Start(client);
+        }
+    }
 
-            // Wait for handshake
-            while (!stream.DataAvailable) ;
+    static void HandleClient(object obj)
+    {
+        TcpClient client = (TcpClient)obj;
+        NetworkStream stream = client.GetStream();
 
-            byte[] buffer = new byte[client.Available];
-            stream.Read(buffer, 0, buffer.Length);
-            string request = Encoding.UTF8.GetString(buffer);
+        // Wait for handshake
+        while (!stream.DataAvailable)
+        {
+            Thread.Sleep(10);
+        }
 
-            if (request.StartsWith("GET"))
+        byte[] buffer = new byte[client.Available];
+        stream.Read(buffer, 0, buffer.Length);
+        string request = Encoding.UTF8.GetString(buffer);
+
+        if (request.StartsWith("GET"))
+        {
+            string key = GetWebSocketKey(request);
+            string acceptKey = ComputeWebSocketAcceptKey(key);
+
+            string response = "HTTP/1.1 101 Switching Protocols\r\n" +
+                              "Connection: Upgrade\r\n" +
+                              "Upgrade: websocket\r\n" +
+                              "Sec-WebSocket-Accept: " + acceptKey + "\r\n\r\n";
+
+            byte[] responseBytes = Encoding.UTF8.GetBytes(response);
+            stream.Write(responseBytes, 0, responseBytes.Length);
+            Console.WriteLine("Handshake complete.");
+
+            while (true)
             {
-                string key = GetWebSocketKey(request);
-                string acceptKey = ComputeWebSocketAcceptKey(key);
-
-                string response = "HTTP/1.1 101 Switching Protocols\r\n" +
-                                  "Connection: Upgrade\r\n" +
-                                  "Upgrade: websocket\r\n" +
-                                  $"Sec-WebSocket-Accept: {acceptKey}\r\n\r\n";
-
-                byte[] responseBytes = Encoding.UTF8.GetBytes(response);
-                stream.Write(responseBytes, 0, responseBytes.Length);
-                Console.WriteLine("Handshake complete.");
-
-                // Echo loop
-                while (true)
+                if (!stream.DataAvailable)
                 {
-                    if (!stream.DataAvailable) continue;
-
-                    byte[] recv = new byte[2];
-                    stream.Read(recv, 0, 2);
-                    int payloadLen = recv[1] & 0x7F;
-
-                    byte[] mask = new byte[4];
-                    stream.Read(mask, 0, 4);
-
-                    byte[] payload = new byte[payloadLen];
-                    stream.Read(payload, 0, payloadLen);
-
-                    for (int i = 0; i < payloadLen; i++)
-                        payload[i] ^= mask[i % 4];
-
-                    string msg = Encoding.UTF8.GetString(payload);
-                    Console.WriteLine("Received: " + msg);
-
-                    // Echo back
-                    byte[] send = Encoding.UTF8.GetBytes(msg);
-                    byte[] frame = new byte[2 + send.Length];
-                    frame[0] = 0x81; // FIN + text
-                    frame[1] = (byte)send.Length;
-                    Array.Copy(send, 0, frame, 2, send.Length);
-                    stream.Write(frame, 0, frame.Length);
+                    Thread.Sleep(10);
+                    continue;
                 }
+
+                byte[] header = new byte[2];
+                stream.Read(header, 0, 2);
+                int payloadLen = header[1] & 0x7F;
+
+                byte[] mask = new byte[4];
+                stream.Read(mask, 0, 4);
+
+                byte[] payload = new byte[payloadLen];
+                stream.Read(payload, 0, payloadLen);
+
+                for (int i = 0; i < payloadLen; i++)
+                    payload[i] ^= mask[i % 4];
+
+                string msg = Encoding.UTF8.GetString(payload);
+                Console.WriteLine("Received: " + msg);
+
+                // Echo back
+                byte[] send = Encoding.UTF8.GetBytes(msg);
+                byte[] frame = new byte[2 + send.Length];
+                frame[0] = 0x81; // FIN + text
+                frame[1] = (byte)send.Length;
+                Array.Copy(send, 0, frame, 2, send.Length);
+                stream.Write(frame, 0, frame.Length);
             }
         }
+
+        stream.Close();
+        client.Close();
     }
 
     static string GetWebSocketKey(string request)
     {
-        foreach (var line in request.Split(new[] { "\r\n" }, StringSplitOptions.None))
+        string[] lines = request.Split(new[] { "\r\n" }, StringSplitOptions.None);
+        foreach (string line in lines)
+        {
             if (line.StartsWith("Sec-WebSocket-Key:"))
-                return line.Split(':')[1].Trim();
+                return line.Substring(18).Trim();
+        }
         return null;
     }
 
