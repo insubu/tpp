@@ -73,7 +73,7 @@ class WebSocketServer
 
     static string GetWebSocketKey(string request)
     {
-        foreach (var line in request.Split("\r\n"))
+        foreach (var line in request.Split(new[] { "\r\n" }, StringSplitOptions.None))
             if (line.StartsWith("Sec-WebSocket-Key:"))
                 return line.Split(':')[1].Trim();
         return null;
