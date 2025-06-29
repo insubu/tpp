@@ -52,3 +52,37 @@
     </script>
 </body>
 </html>
+--------------------------------
+<input type="file" id="file1">
+<input type="file" id="file2">
+<button onclick="readBothFiles()">Read Files</button>
+
+<pre id="output"></pre>
+
+<script>
+  async function readFileAsLines(file) {
+    if (!file) return [];
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const lines = e.target.result.split(/\r?\n/);
+        resolve(lines);
+      };
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
+  }
+
+  async function readBothFiles() {
+    const file1 = document.getElementById('file1').files[0];
+    const file2 = document.getElementById('file2').files[0];
+
+    const [lines1, lines2] = await Promise.all([
+      readFileAsLines(file1),
+      readFileAsLines(file2)
+    ]);
+
+    document.getElementById('output').textContent =
+      `File 1:\n${lines1.join('\n')}\n\nFile 2:\n${lines2.join('\n')}`;
+  }
+</script>
