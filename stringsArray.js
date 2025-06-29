@@ -39,3 +39,37 @@ function classifyStrings(arr) {
 const input = [" 123abc", "!hello", " World ", "9Lives", " ", "#start", "foo"];
 const result = classifyStrings(input);
 console.log(result);
+
+function findMatchingString(inputStr, { digitArray, otherArray, validArray }) {
+  const trimmed = inputStr.trim();
+  if (trimmed === "") return [];
+
+  const firstChar = trimmed.charAt(0);
+  const lastChar = trimmed.charAt(trimmed.length - 1);
+  const inputLength = trimmed.length;
+
+  // Determine which array to search
+  let targetArray;
+  if (/\d/.test(firstChar)) {
+    targetArray = digitArray;
+  } else if (!/[a-zA-Z]/.test(firstChar)) {
+    targetArray = otherArray;
+  } else {
+    targetArray = validArray;
+  }
+
+  // Perform search in the chosen array
+  return targetArray.filter(item =>
+    item.firstChar === firstChar &&
+    item.lastChar === lastChar &&
+    item.stringLength === inputLength
+  );
+}
+
+
+function diffDigitArrays(arrayA, arrayB) {
+  const toKey = item => `${item.firstChar}-${item.lastChar}-${item.stringLength}`;
+  const setB = new Set(arrayB.map(toKey));
+
+  return arrayA.filter(item => !setB.has(toKey(item)));
+}
