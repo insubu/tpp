@@ -17,5 +17,15 @@ while ($listener.IsListening) {
 
     $response = $context.Response
     $response.StatusCode = 200
+
+$response.StatusDescription = "Webhook received"
+
+# 设置响应类型（如纯文本或 JSON）
+$response.ContentType = "text/plain"
+
+# 写入响应体（可改为输出 JSON 或 HTML）
+$buffer = [System.Text.Encoding]::UTF8.GetBytes("Thanks! Message received.")
+$response.OutputStream.Write($buffer, 0, $buffer.Length)
+    
     $response.OutputStream.Close()
 }
