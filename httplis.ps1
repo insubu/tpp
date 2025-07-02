@@ -29,3 +29,37 @@ $response.OutputStream.Write($buffer, 0, $buffer.Length)
     
     $response.OutputStream.Close()
 }
+##################################################################
+function Dispatch-Job {
+    param($cmd, $payload)
+
+    switch ($cmd) {
+
+        "backup" {
+            Start-Job -Name "BackupJob" -ScriptBlock {
+                param($data)
+                # 模拟备份逻辑
+                Start-Sleep -Seconds 3
+                "Backup completed for $($data.target)"
+            } -ArgumentList $payload
+        }
+
+        "notify" {
+            Start-Job -Name "NotifyJob" -ScriptBlock {
+                param($data)
+                # 模拟通知逻辑
+                "Notification sent to $($data.email)"
+            } -ArgumentList $payload
+        }
+
+        default {
+            Write-Warning "Unknown command: $cmd"
+        }
+    }
+}
+
+# 模拟 webhook 请求
+$cmd = "greet"
+$payload = @{ name = "怡然" }
+
+Dispatch-Job -cmd $cmd -payload $payload
