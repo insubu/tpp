@@ -1,9 +1,7 @@
-
 using System;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 
-class MonitorBrightnessControl
+class MonitorNightMode
 {
     const int PHYSICAL_MONITOR_DESCRIPTION_SIZE = 128;
 
@@ -16,18 +14,15 @@ class MonitorBrightnessControl
         public string szPhysicalMonitorDescription;
     }
 
-    [DllImport("user32.dll", SetLastError = true)]
-    static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
-
     [DllImport("user32.dll")]
     static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip,
         MonitorEnumProc lpfnEnum, IntPtr dwData);
 
     [DllImport("dxva2.dll", SetLastError = true)]
-    static extern bool GetMonitorBrightness(IntPtr hMonitor, out uint minBrightness, out uint currentBrightness, out uint maxBrightness);
+    static extern bool GetMonitorBrightness(IntPtr hMonitor, out uint pdwMinimumBrightness, out uint pdwCurrentBrightness, out uint pdwMaximumBrightness);
 
     [DllImport("dxva2.dll", SetLastError = true)]
-    static extern bool SetMonitorBrightness(IntPtr hMonitor, uint newBrightness);
+    static extern bool SetMonitorBrightness(IntPtr hMonitor, uint dwNewBrightness);
 
     [DllImport("dxva2.dll", SetLastError = true)]
     static extern bool GetNumberOfPhysicalMonitorsFromHMONITOR(IntPtr hMonitor, out uint pdwNumberOfPhysicalMonitors);
@@ -38,18 +33,6 @@ class MonitorBrightnessControl
 
     [DllImport("dxva2.dll", SetLastError = true)]
     static extern bool DestroyPhysicalMonitor(IntPtr hMonitor);
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    struct MONITORINFOEX
-    {
-        public uint cbSize;
-        public RECT rcMonitor;
-        public RECT rcWork;
-        public uint dwFlags;
-
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-        public string szDevice;
-    }
 
     [StructLayout(LayoutKind.Sequential)]
     struct RECT
@@ -64,45 +47,54 @@ class MonitorBrightnessControl
 
     static void Main()
     {
-        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, MonitorEnum, IntPtr.Zero);
+        Console.WriteLine("Setting brightness to night mode...");
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, new MonitorEnumProc(MonitorEnum), IntPtr.Zero);
+        Console.WriteLine("Done.");
     }
 
     static bool MonitorEnum(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData)
     {
-        if (GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, out uint numMonitors))
+        uint numMonitors;
+        if (!GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, out numMonitors))
         {
-            var monitors = new PHYSICAL_MONITOR[numMonitors];
-            if (GetPhysicalMonitorsFromHMONITOR(hMonitor, numMonitors, monitors))
+            Console.WriteLine("Failed to get monitor count.");
+            return true;
+        }
+
+        PHYSICAL_MONITOR[] monitors = new PHYSICAL_MONITOR[numMonitors];
+        if (!GetPhysicalMonitorsFromHMONITOR(hMonitor, numMonitors, monitors))
+        {
+            Console.WriteLine("Failed to get monitor handles.");
+            return true;
+        }
+
+        for (int i = 0; i < monitors.Length; i++)
+        {
+            PHYSICAL_MONITOR pm = monitors[i];
+            uint min, curr, max;
+
+            if (GetMonitorBrightness(pm.hPhysicalMonitor, out min, out curr, out max))
             {
-                foreach (var pm in monitors)
+                uint nightBrightness = (uint)(max * 0.2); // 20% brightness
+                Console.WriteLine("Monitor: " + pm.szPhysicalMonitorDescription);
+                Console.WriteLine("Current: " + curr + ", Target: " + nightBrightness);
+                if (SetMonitorBrightness(pm.hPhysicalMonitor, nightBrightness))
                 {
-                    Console.WriteLine("Monitor: " + pm.szPhysicalMonitorDescription);
-
-                    if (GetMonitorBrightness(pm.hPhysicalMonitor, out uint min, out uint current, out uint max))
-                    {
-                        Console.WriteLine($"Brightness: Min={min}, Current={current}, Max={max}");
-
-                        //uint newBrightness = Math.Min(max, current + 10); // increase brightness by 10
-                        uint newBrightness = (uint)(max * 0.3); // ~30% brightness for night mode
-
-                        if (SetMonitorBrightness(pm.hPhysicalMonitor, newBrightness))
-                        {
-                            Console.WriteLine($"Brightness set to: {newBrightness}");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Failed to set brightness.");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Failed to get brightness.");
-                    }
-
-                    DestroyPhysicalMonitor(pm.hPhysicalMonitor);
+                    Console.WriteLine("Brightness set.");
+                }
+                else
+                {
+                    Console.WriteLine("Failed to set brightness.");
                 }
             }
+            else
+            {
+                Console.WriteLine("Cannot get brightness for: " + pm.szPhysicalMonitorDescription);
+            }
+
+            DestroyPhysicalMonitor(pm.hPhysicalMonitor);
         }
-        return true; // continue enumeration
+
+        return true; // continue
     }
 }
