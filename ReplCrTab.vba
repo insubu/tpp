@@ -1,44 +1,53 @@
-Sub SelectAndReadFile()
+Sub SelectCleanSaveFile()
     Dim fd As FileDialog
-    Dim filePath As String
-    Dim fso As Object
-    Dim ts As Object
-    Dim line As String
+    Dim filePath As String, newFilePath As String
+    Dim fso As Object, tsIn As Object, tsOut As Object
+    Dim line As String, cleanedLine As String
     Dim re As Object
-    Dim cleanedLine As String
     Dim lineCount As Long
 
-    ' Ask user to pick a file
+    ' Select file
     Set fd = Application.FileDialog(msoFileDialogFilePicker)
     With fd
-        .Title = "Select a text file"
+        .Title = "Select a CSV or TXT file"
         .Filters.Clear
-        .Filters.Add "Text Files", "*.txt"
+        .Filters.Add "CSV and Text Files", "*.csv;*.txt"
         .AllowMultiSelect = False
-        If .Show <> -1 Then Exit Sub ' Cancelled
+        If .Show <> -1 Then Exit Sub
         filePath = .SelectedItems(1)
     End With
 
-    ' Prepare regex: remove lone \r and tabs
+    ' Prepare output path: "example.csv" → "example_cleaned.csv"
+    Dim dotPos As Long
+    dotPos = InStrRev(filePath, ".")
+    If dotPos > 0 Then
+        newFilePath = Left(filePath, dotPos - 1) & "_cleaned" & Mid(filePath, dotPos)
+    Else
+        newFilePath = filePath & "_cleaned.txt"
+    End If
+
+    ' Create regex
     Set re = CreateObject("VBScript.RegExp")
     With re
         .Global = True
         .Pattern = "\r(?!\n)|\t"
     End With
 
-    ' Read the file line by line
+    ' FileSystemObject
     Set fso = CreateObject("Scripting.FileSystemObject")
-    Set ts = fso.OpenTextFile(filePath, 1, False, -1) ' UTF-8 with BOM
+    Set tsIn = fso.OpenTextFile(filePath, 1, False, -1)   ' Read, UTF-8 BOM
+    Set tsOut = fso.CreateTextFile(newFilePath, True, True) ' Write, UTF-8 BOM
 
-    Do Until ts.AtEndOfStream
-        line = ts.ReadLine
+    ' Process line-by-line
+    Do Until tsIn.AtEndOfStream
+        line = tsIn.ReadLine
         cleanedLine = re.Replace(line, "")
+        tsOut.WriteLine cleanedLine
         lineCount = lineCount + 1
-
-        ' Example output
-        Debug.Print cleanedLine
     Loop
 
-    ts.Close
-    MsgBox "Total lines processed: " & lineCount
+    tsIn.Close
+    tsOut.Close
+
+    MsgBox "Saved " & lineCount & " cleaned lines to:" & vbCrLf & newFilePath
 End Sub
