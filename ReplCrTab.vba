@@ -1,10 +1,12 @@
-Sub SelectCleanSaveFile()
+Sub SelectCleanSaveFile_UTF8Out()
     Dim fd As FileDialog
     Dim filePath As String, newFilePath As String
-    Dim fso As Object, tsIn As Object, tsOut As Object
+    Dim fso As Object, tsIn As Object
     Dim line As String, cleanedLine As String
     Dim re As Object
     Dim lineCount As Long
+    Dim outputBuffer As String
+    Dim encodingCode As Long
 
     ' Select file
     Set fd = Application.FileDialog(msoFileDialogFilePicker)
@@ -17,7 +19,7 @@ Sub SelectCleanSaveFile()
         filePath = .SelectedItems(1)
     End With
 
-    ' Prepare output path: "example.csv" → "example_cleaned.csv"
+    ' Output path
     Dim dotPos As Long
     dotPos = InStrRev(filePath, ".")
     If dotPos > 0 Then
@@ -26,28 +28,36 @@ Sub SelectCleanSaveFile()
         newFilePath = filePath & "_cleaned.txt"
     End If
 
-    ' Create regex
+    ' Regex setup
     Set re = CreateObject("VBScript.RegExp")
     With re
         .Global = True
         .Pattern = "\r(?!\n)|\t"
     End With
 
-    ' FileSystemObject
+    ' Read lines
     Set fso = CreateObject("Scripting.FileSystemObject")
-    Set tsIn = fso.OpenTextFile(filePath, 1, False, -1)   ' Read, UTF-8 BOM
-    Set tsOut = fso.CreateTextFile(newFilePath, True, True) ' Write, UTF-8 BOM
+    Set tsIn = fso.OpenTextFile(filePath, 1, False, -1) ' UTF-8 with BOM assumed
 
-    ' Process line-by-line
+    outputBuffer = ""
     Do Until tsIn.AtEndOfStream
         line = tsIn.ReadLine
         cleanedLine = re.Replace(line, "")
-        tsOut.WriteLine cleanedLine
+        outputBuffer = outputBuffer & cleanedLine & vbCrLf
         lineCount = lineCount + 1
     Loop
-
     tsIn.Close
-    tsOut.Close
+
+    ' Write with UTF-8 using ADODB.Stream
+    Dim stream As Object
+    Set stream = CreateObject("ADODB.Stream")
+    With stream
+        .Charset = "utf-8"
+        .Open
+        .WriteText outputBuffer
+        .SaveToFile newFilePath, 2 ' 2 = overwrite
+        .Close
+    End With
 
     MsgBox "Saved " & lineCount & " cleaned lines to:" & vbCrLf & newFilePath
 End Sub
