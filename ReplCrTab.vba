@@ -1,26 +1,22 @@
-Sub SelectCleanSaveFile_UTF8_BlockWrite()
-    Const BLOCK_SIZE As Long = 5000
-    Dim fd As FileDialog
-    Dim filePath As String, newFilePath As String
-    Dim fso As Object, tsIn As Object
-    Dim line As String, cleanedLine As String
-    Dim re As Object
-    Dim lineCount As Long, bufferLineCount As Long
-    Dim buffer As String
-    Dim stream As Object
+Sub StreamCleanSave_UTF8_Block()
 
-    ' File select
-    Set fd = Application.FileDialog(msoFileDialogFilePicker)
-    With fd
-        .Title = "Select a CSV or TXT file"
+    Const BLOCK_SIZE As Long = 5000
+    Dim inputStream As Object, outputStream As Object
+    Dim re As Object
+    Dim buffer As String, cleanedLine As String
+    Dim filePath As String, newFilePath As String
+    Dim lineCount As Long, bufferLineCount As Long
+
+    ' === File Picker ===
+    With Application.FileDialog(msoFileDialogFilePicker)
+        .Title = "Select CSV or TXT file"
         .Filters.Clear
-        .Filters.Add "CSV and Text Files", "*.csv;*.txt"
-        .AllowMultiSelect = False
+        .Filters.Add "CSV/TXT Files", "*.csv;*.txt"
         If .Show <> -1 Then Exit Sub
         filePath = .SelectedItems(1)
     End With
 
-    ' Output path
+    ' === Output file path ===
     Dim dotPos As Long
     dotPos = InStrRev(filePath, ".")
     If dotPos > 0 Then
@@ -29,49 +25,55 @@ Sub SelectCleanSaveFile_UTF8_BlockWrite()
         newFilePath = filePath & "_cleaned.txt"
     End If
 
-    ' Regex
+    ' === RegExp setup ===
     Set re = CreateObject("VBScript.RegExp")
     With re
         .Global = True
-        .Pattern = "\r(?!\n)|\t"
+        .Pattern = "\r(?!\n)|\t"  ' remove lone \r and tabs
     End With
 
-    ' Input stream
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    Set tsIn = fso.OpenTextFile(filePath, 1, False, -1)
-
-    ' Output ADODB stream
-    Set stream = CreateObject("ADODB.Stream")
-    With stream
+    ' === Open input stream ===
+    Set inputStream = CreateObject("ADODB.Stream")
+    With inputStream
         .Charset = "utf-8"
         .Open
+        .LoadFromFile filePath
+        .Position = 0
+        .Type = 2 ' adText
     End With
 
-    ' Main loop
+    ' === Open output stream ===
+    Set outputStream = CreateObject("ADODB.Stream")
+    With outputStream
+        .Charset = "utf-8"
+        .Open
+        .Type = 2 ' adText
+    End With
+
+    ' === Read line-by-line, block write ===
     buffer = ""
     bufferLineCount = 0
-    Do Until tsIn.AtEndOfStream
-        line = tsIn.ReadLine
-        cleanedLine = re.Replace(line, "")
+
+    Do While Not inputStream.EOS
+        cleanedLine = re.Replace(inputStream.ReadText(-2), "")  ' -2 = read line
         buffer = buffer & cleanedLine & vbCrLf
         bufferLineCount = bufferLineCount + 1
         lineCount = lineCount + 1
 
         If bufferLineCount >= BLOCK_SIZE Then
-            stream.WriteText buffer
+            outputStream.WriteText buffer
             buffer = ""
             bufferLineCount = 0
         End If
     Loop
 
-    ' Write any remaining lines
-    If buffer <> "" Then
-        stream.WriteText buffer
-    End If
+    If buffer <> "" Then outputStream.WriteText buffer
 
-    tsIn.Close
-    stream.SaveToFile newFilePath, 2
-    stream.Close
+    ' === Save output ===
+    outputStream.SaveToFile newFilePath, 2
+    inputStream.Close
+    outputStream.Close
 
-    MsgBox "Saved " & lineCount & " cleaned lines to:" & vbCrLf & newFilePath
+    MsgBox "Saved " & lineCount & " lines to:" & vbCrLf & newFilePath, vbInformation
+
 End Sub
