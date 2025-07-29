@@ -1,14 +1,15 @@
-Sub SelectCleanSaveFile_UTF8Out()
+Sub SelectCleanSaveFile_UTF8_BlockWrite()
+    Const BLOCK_SIZE As Long = 5000
     Dim fd As FileDialog
     Dim filePath As String, newFilePath As String
     Dim fso As Object, tsIn As Object
     Dim line As String, cleanedLine As String
     Dim re As Object
-    Dim lineCount As Long
-    Dim outputBuffer As String
-    Dim encodingCode As Long
+    Dim lineCount As Long, bufferLineCount As Long
+    Dim buffer As String
+    Dim stream As Object
 
-    ' Select file
+    ' File select
     Set fd = Application.FileDialog(msoFileDialogFilePicker)
     With fd
         .Title = "Select a CSV or TXT file"
@@ -28,36 +29,49 @@ Sub SelectCleanSaveFile_UTF8Out()
         newFilePath = filePath & "_cleaned.txt"
     End If
 
-    ' Regex setup
+    ' Regex
     Set re = CreateObject("VBScript.RegExp")
     With re
         .Global = True
         .Pattern = "\r(?!\n)|\t"
     End With
 
-    ' Read lines
+    ' Input stream
     Set fso = CreateObject("Scripting.FileSystemObject")
-    Set tsIn = fso.OpenTextFile(filePath, 1, False, -1) ' UTF-8 with BOM assumed
+    Set tsIn = fso.OpenTextFile(filePath, 1, False, -1)
 
-    outputBuffer = ""
-    Do Until tsIn.AtEndOfStream
-        line = tsIn.ReadLine
-        cleanedLine = re.Replace(line, "")
-        outputBuffer = outputBuffer & cleanedLine & vbCrLf
-        lineCount = lineCount + 1
-    Loop
-    tsIn.Close
-
-    ' Write with UTF-8 using ADODB.Stream
-    Dim stream As Object
+    ' Output ADODB stream
     Set stream = CreateObject("ADODB.Stream")
     With stream
         .Charset = "utf-8"
         .Open
-        .WriteText outputBuffer
-        .SaveToFile newFilePath, 2 ' 2 = overwrite
-        .Close
     End With
+
+    ' Main loop
+    buffer = ""
+    bufferLineCount = 0
+    Do Until tsIn.AtEndOfStream
+        line = tsIn.ReadLine
+        cleanedLine = re.Replace(line, "")
+        buffer = buffer & cleanedLine & vbCrLf
+        bufferLineCount = bufferLineCount + 1
+        lineCount = lineCount + 1
+
+        If bufferLineCount >= BLOCK_SIZE Then
+            stream.WriteText buffer
+            buffer = ""
+            bufferLineCount = 0
+        End If
+    Loop
+
+    ' Write any remaining lines
+    If buffer <> "" Then
+        stream.WriteText buffer
+    End If
+
+    tsIn.Close
+    stream.SaveToFile newFilePath, 2
+    stream.Close
 
     MsgBox "Saved " & lineCount & " cleaned lines to:" & vbCrLf & newFilePath
 End Sub
