@@ -58,20 +58,33 @@ Sub CleanFile_RemoveTabs_CarriageReturns()
     MsgBox "Cleaned " & lineCount & " lines to:" & vbCrLf & newFilePath
 End Sub
 
-' Write UTF-8 file without BOM
-Sub SaveUTF8WithoutBOM(ByVal text As String, ByVal filePath As String)
-    Dim stream As Object
 
-    Set stream = CreateObject("ADODB.Stream")
-    With stream
+Sub SaveUTF8WithoutBOM(text As String, filePath As String)
+    Dim utf8Stream As Object
+    Dim noBOMStream As Object
+    Dim bytes() As Byte
+    Dim BOM_LENGTH As Long: BOM_LENGTH = 3
+
+    ' Write text with BOM first
+    Set utf8Stream = CreateObject("ADODB.Stream")
+    With utf8Stream
         .Charset = "utf-8"
-        .Type = 2 ' Text mode
         .Open
         .WriteText text
         .Position = 0
         .Type = 1 ' Binary mode
-        .Position = 3 ' Skip BOM
-        .SaveToFile filePath, 2 ' Overwrite
+        bytes = .Read
+        .Close
+    End With
+
+    ' Create new stream for no BOM
+    Set noBOMStream = CreateObject("ADODB.Stream")
+    With noBOMStream
+        .Type = 1 ' Binary
+        .Open
+        ' Write bytes skipping BOM
+        .Write MidB(bytes, BOM_LENGTH + 1)
+        .SaveToFile filePath, 2 ' overwrite
         .Close
     End With
 End Sub
