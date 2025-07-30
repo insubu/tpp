@@ -58,12 +58,24 @@ Sub CleanFile_RemoveTabs_CarriageReturns()
     MsgBox "Cleaned " & lineCount & " lines to:" & vbCrLf & newFilePath
 End Sub
 
+Function ByteArraySlice(ByRef arr() As Byte, ByVal startIndex As Long) As Byte()
+    Dim result() As Byte
+    Dim length As Long
+    length = UBound(arr) - startIndex + 1
+    ReDim result(0 To length - 1)
+    Dim i As Long
+    For i = 0 To length - 1
+        result(i) = arr(startIndex + i)
+    Next i
+    ByteArraySlice = result
+End Function
 
 Sub SaveUTF8WithoutBOM(text As String, filePath As String)
     Dim utf8Stream As Object
     Dim noBOMStream As Object
     Dim bytes() As Byte
-    Dim BOM_LENGTH As Long: BOM_LENGTH = 3
+    Dim noBOMBytes() As Byte
+    Const BOM_LENGTH As Long = 3
 
     ' Write text with BOM first
     Set utf8Stream = CreateObject("ADODB.Stream")
@@ -77,14 +89,17 @@ Sub SaveUTF8WithoutBOM(text As String, filePath As String)
         .Close
     End With
 
-    ' Create new stream for no BOM
+    ' Extract bytes excluding BOM
+    noBOMBytes = ByteArraySlice(bytes, BOM_LENGTH)
+
+    ' Write bytes without BOM to new stream
     Set noBOMStream = CreateObject("ADODB.Stream")
     With noBOMStream
         .Type = 1 ' Binary
         .Open
-        ' Write bytes skipping BOM
-        .Write MidB(bytes, BOM_LENGTH + 1)
+        .Write noBOMBytes
         .SaveToFile filePath, 2 ' overwrite
         .Close
     End With
 End Sub
+
