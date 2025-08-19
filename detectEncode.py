@@ -33,3 +33,12 @@ rule = FormulaRule(formula=['$B2<>$A2'], fill=red_fill)
 ws.conditional_formatting.add("B2", rule)
 
 wb.save("test.xlsx")
+
+
+# 找到 B 列最后一行（从第2行到最后）
+last_row = ws.max_row   # 包含标题
+red_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+
+# 设置条件格式
+rule = FormulaRule(formula=['$B2<>$A2'], fill=red_fill)
+ws.conditional_formatting.add(f"B2:B{last_row}", rule)
