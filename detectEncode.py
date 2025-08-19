@@ -1,17 +1,12 @@
-import sys
+import pandas as pd
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python script.py <filename>")
-        sys.exit(1)
+def csv_to_xlsx_all_text(csv_file, xlsx_file):
+    # Read CSV, force all values as string
+    df = pd.read_csv(csv_file, dtype=str)
 
-    filename = sys.argv[1]
-    print(f"Input file: {filename}")
+    # Write to Excel
+    df.to_excel(xlsx_file, index=False)
 
-    # 打开文件读取
-    with open(filename, "r", encoding="utf-8") as f:
-        content = f.read()
-        print("First 100 chars:", content[:100])
-
-if __name__ == "__main__":
-    main()
+# Example
+csv_to_xlsx_all_text("input.csv", "output.xlsx")
+print("Done! All columns saved as text")
