@@ -1,3 +1,17 @@
+import time
+
+start_time = time.time()
+
+# Your code block here
+for i in range(1000000):
+    _ = i ** 2
+
+end_time = time.time()
+run_time = end_time - start_time
+
+print(f"Run time: {run_time:.4f} seconds")
+---------------------------------------------------
+
 import pandas as pd
 
 def csv_to_xlsx_all_text(csv_file, xlsx_file):
