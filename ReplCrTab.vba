@@ -1,17 +1,8 @@
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Run main.py",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/main.py",
-      "console": "integratedTerminal",
-      "args": ["--ticker", "8306", "--mode", "debug"],
-      "cwd": "${workspaceFolder}/scripts",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/lib"
-      }
-    }
-  ]
-}
+BLOCK_SIZE = 4096
+NUM_BLOCKS = 4
+
+with open("your_file.dat", "rb") as f:
+    header_bytes = f.read(BLOCK_SIZE * NUM_BLOCKS)
+
+result = from_bytes(raw_bytes)
+print(result.best().encoding)
