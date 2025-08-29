@@ -1,9 +1,10 @@
-import pyautogui
-from PIL import Image
+from PIL import ImageGrab
+from pyperclip_image import copy
 
-# 捕获屏幕
-screenshot = pyautogui.screenshot()
+# 捕获主显示器
+img = ImageGrab.grab()  # 默认抓主屏幕
 
-# 保存临时文件
-screenshot.save("screenshot.png")
-print("已保存 screenshot.png，可手动复制到剪贴板")
+# 复制到剪贴板
+copy(img)
+
+print("屏幕已复制到剪贴板！")
